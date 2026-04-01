@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kiran Avusula — Video Editor</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@400;700;800&family=Space+Mono:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080808;
+    --bg2: #0f0f0f;
+    --bg3: #141414;
+    --teal: #00E5B4;
+    --teal2: #00BFA0;
+    --teal-dim: rgba(0,229,180,0.08);
+    --teal-glow: rgba(0,229,180,0.18);
+    --white: #F0FFFA;
+    --muted: rgba(240,255,250,0.45);
+    --border: rgba(0,229,180,0.15);
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'Syne', sans-serif;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* Custom cursor */
+  .cursor {
+    width: 12px; height: 12px;
+    background: var(--teal);
+    border-radius: 50%;
+    position: fixed; top: 0; left: 0;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s, width 0.2s, height 0.2s, background 0.2s;
+    mix-blend-mode: difference;
+  }
+  .cursor-ring {
+    width: 36px; height: 36px;
+    border: 1px solid var(--teal);
+    border-radius: 50%;
+    position: fixed; top: 0; left: 0;
+    pointer-events: none;
+    z-index: 9998;
+    transform: translate(-50%, -50%);
+    transition: transform 0.18s ease, width 0.2s, height 0.2s, opacity 0.2s;
+    opacity: 0.5;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 24px 48px;
+    background: linear-gradient(to bottom, rgba(8,8,8,0.95), transparent);
+  }
+  .nav-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 3px;
+    color: var(--teal);
+  }
+  .nav-links { display: flex; gap: 36px; list-style: none; }
+  .nav-links a {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--teal); }
+
+  /* ═══════════════════════════════
+     HERO
+  ═══════════════════════════════ */
+  #hero {
+    position: relative;
+    width: 100%; height: 100vh;
+    overflow: hidden;
+    display: flex; align-items: flex-end;
+  }
+
+  .hero-video-wrap {
+    position: absolute; inset: 0;
+  }
+  .hero-video-wrap video {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    opacity: 0.45;
+  }
+
+  /* Glitch scan lines */
+  .hero-video-wrap::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0px,
+      transparent 3px,
+      rgba(0,0,0,0.18) 3px,
+      rgba(0,0,0,0.18) 4px
+    );
+    pointer-events: none;
+  }
+
+  .hero-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(8,8,8,0.55) 0%,
+      rgba(8,8,8,0.1) 50%,
+      rgba(0,229,180,0.04) 100%
+    );
+  }
+
+  /* Teal corner accent */
+  .hero-corner {
+    position: absolute;
+    top: 0; right: 0;
+    width: 280px; height: 280px;
+    background: radial-gradient(circle at top right, rgba(0,229,180,0.12), transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-content {
+    position: relative; z-index: 2;
+    padding: 0 48px 72px;
+    width: 100%;
+  }
+
+  .hero-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--teal);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .hero-tag::before {
+    content: '';
+    display: block; width: 40px; height: 1px;
+    background: var(--teal);
+  }
+
+  h1.hero-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(72px, 12vw, 160px);
+    line-height: 0.88;
+    letter-spacing: 2px;
+    color: var(--white);
+    text-transform: uppercase;
+  }
+
+  h1.hero-name span {
+    color: var(--teal);
+    display: block;
+  }
+
+  .hero-bottom {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    margin-top: 28px;
+  }
+
+  .hero-desc {
+    font-size: 14px;
+    color: var(--muted);
+    max-width: 320px;
+    line-height: 1.7;
+    font-weight: 400;
+  }
+
+  .hero-stats {
+    display: flex; gap: 40px;
+  }
+  .stat { text-align: right; }
+  .stat-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 42px;
+    color: var(--teal);
+    line-height: 1;
+  }
+  .stat-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* Scroll indicator */
+  .scroll-hint {
+    position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%);
+    z-index: 2;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+  }
+  .scroll-hint span {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px; letter-spacing: 3px;
+    color: var(--muted); text-transform: uppercase;
+  }
+  .scroll-line {
+    width: 1px; height: 48px;
+    background: linear-gradient(to bottom, var(--teal), transparent);
+    animation: scrollPulse 2s ease-in-out infinite;
+  }
+  @keyframes scrollPulse {
+    0%,100% { opacity: 0.3; transform: scaleY(1); }
+    50% { opacity: 1; transform: scaleY(1.1); }
+  }
+
+  /* ═══════════════════════════════
+     SECTION SHARED
+  ═══════════════════════════════ */
+  section { padding: 120px 48px; }
+
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px; letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 64px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1; height: 1px;
+    background: var(--border);
+  }
+
+  h2.section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(48px, 7vw, 88px);
+    line-height: 0.92;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* ═══════════════════════════════
+     ABOUT
+  ═══════════════════════════════ */
+  #about {
+    background: var(--bg);
+    display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center;
+  }
+
+  .about-left h2 { margin-bottom: 32px; }
+  .about-left h2 em {
+    font-style: normal;
+    color: var(--teal);
+  }
+
+  .about-body {
+    font-size: 16px; line-height: 1.8;
+    color: var(--muted);
+    font-weight: 400;
+    margin-bottom: 40px;
+  }
+
+  .about-tags {
+    display: flex; flex-wrap: wrap; gap: 10px;
+  }
+  .tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px; letter-spacing: 1px;
+    padding: 7px 16px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--teal);
+    background: var(--teal-dim);
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .tag:hover { background: rgba(0,229,180,0.15); border-color: var(--teal); }
+
+  .about-right {
+    position: relative;
+  }
+
+  /* Floating video frame */
+  .about-video-frame {
+    position: relative;
+    aspect-ratio: 9/16;
+    max-height: 560px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .about-video-frame video {
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+  .about-video-frame::before {
+    content: '';
+    position: absolute; inset: 0; z-index: 1;
+    background: linear-gradient(to top, rgba(8,8,8,0.5) 0%, transparent 40%);
+  }
+
+  /* Teal corner lines */
+  .frame-corner {
+    position: absolute; width: 24px; height: 24px; z-index: 2;
+  }
+  .frame-corner.tl { top: -1px; left: -1px; border-top: 2px solid var(--teal); border-left: 2px solid var(--teal); }
+  .frame-corner.tr { top: -1px; right: -1px; border-top: 2px solid var(--teal); border-right: 2px solid var(--teal); }
+  .frame-corner.bl { bottom: -1px; left: -1px; border-bottom: 2px solid var(--teal); border-left: 2px solid var(--teal); }
+  .frame-corner.br { bottom: -1px; right: -1px; border-bottom: 2px solid var(--teal); border-right: 2px solid var(--teal); }
+
+  .about-video-label {
+    position: absolute; bottom: 20px; left: 20px; z-index: 3;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px; letter-spacing: 2px;
+    color: var(--teal); text-transform: uppercase;
+  }
+
+  /* ═══════════════════════════════
+     SERVICES
+  ═══════════════════════════════ */
+  #services {
+    background: var(--bg2);
+  }
+
+  .services-header { margin-bottom: 72px; }
+  .services-header h2 { margin-bottom: 0; }
+
+  .services-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+  }
+
+  .service-card {
+    background: var(--bg3);
+    padding: 40px 32px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(0,229,180,0.06);
+    transition: border-color 0.3s, background 0.3s;
+    cursor: default;
+  }
+  .service-card:hover {
+    border-color: var(--border);
+    background: var(--teal-dim);
+  }
+  .service-card:hover .service-num { opacity: 1; }
+  .service-card:hover .service-line { width: 100%; }
+
+  .service-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 72px;
+    color: rgba(0,229,180,0.06);
+    position: absolute; top: 16px; right: 24px;
+    line-height: 1;
+    opacity: 0.5;
+    transition: opacity 0.3s;
+  }
+
+  .service-icon {
+    font-size: 28px; margin-bottom: 24px;
+    display: block;
+  }
+
+  .service-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px; letter-spacing: 1px;
+    color: var(--white);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+  }
+
+  .service-desc {
+    font-size: 13px; line-height: 1.7;
+    color: var(--muted); font-weight: 400;
+    margin-bottom: 24px;
+  }
+
+  .service-line {
+    height: 1px; width: 32px;
+    background: var(--teal);
+    transition: width 0.4s ease;
+  }
+
+  /* ═══════════════════════════════
+     PORTFOLIO — CREATIVE VIDEO REVEAL
+  ═══════════════════════════════ */
+  #portfolio {
+    background: var(--bg);
+    padding-bottom: 0;
+  }
+
+  .portfolio-header {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    margin-bottom: 64px;
+  }
+
+  /* FILMSTRIP layout */
+  .filmstrip-container {
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Top and bottom film holes */
+  .film-holes {
+    display: flex; gap: 0;
+    background: #050505;
+    padding: 10px 0;
+    overflow: hidden;
+  }
+  .film-hole-row {
+    display: flex; gap: 16px; padding: 0 8px;
+    animation: filmSlide 18s linear infinite;
+  }
+  .film-hole {
+    width: 28px; height: 20px; flex-shrink: 0;
+    background: var(--bg2);
+    border-radius: 3px;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+
+  @keyframes filmSlide {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* Main video showcase */
+  .video-showcase {
+    background: #050505;
+    padding: 0 48px 0;
+    display: flex;
+    gap: 3px;
+    align-items: stretch;
+    min-height: 520px;
+  }
+
+  /* Featured video — large left */
+  .video-featured {
+    flex: 2.2;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    min-height: 480px;
+  }
+  .video-featured video {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.6s ease, opacity 0.3s;
+  }
+  .video-featured:hover video { transform: scale(1.03); }
+
+  .video-featured-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(8,8,8,0.85) 0%, transparent 55%);
+    z-index: 1;
+    transition: opacity 0.3s;
+  }
+
+  .video-featured-info {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 28px 32px; z-index: 2;
+  }
+
+  .vf-category {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px; letter-spacing: 3px;
+    color: var(--teal); text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .vf-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px; letter-spacing: 1px;
+    color: var(--white);
+    text-transform: uppercase;
+  }
+
+  /* Play button overlay */
+  .play-btn {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%) scale(0);
+    z-index: 3;
+    width: 64px; height: 64px;
+    border: 1.5px solid var(--teal);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.3s ease, background 0.2s;
+    background: rgba(0,229,180,0.1);
+  }
+  .play-btn svg { margin-left: 4px; }
+  .video-featured:hover .play-btn { transform: translate(-50%,-50%) scale(1); }
+  .play-btn:hover { background: rgba(0,229,180,0.2); }
+
+  /* Side column: 2 stacked small clips */
+  .video-side {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .video-side-item {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    min-height: 180px;
+  }
+  .video-side-item video {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    filter: grayscale(40%);
+    transition: filter 0.4s, transform 0.4s;
+  }
+  .video-side-item:hover video {
+    filter: grayscale(0%);
+    transform: scale(1.05);
+  }
+  .video-side-item-overlay {
+    position: absolute; inset: 0;
+    background: rgba(8,8,8,0.5);
+    transition: opacity 0.3s; z-index: 1;
+  }
+  .video-side-item:hover .video-side-item-overlay { opacity: 0; }
+
+  .video-side-label {
+    position: absolute; bottom: 14px; left: 16px; z-index: 2;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px; letter-spacing: 1px;
+    color: var(--white); text-transform: uppercase;
+  }
+  .video-side-cat {
+    position: absolute; top: 14px; left: 16px; z-index: 2;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px; letter-spacing: 2px;
+    color: var(--teal); text-transform: uppercase;
+  }
+
+  /* TICKER */
+  .ticker-wrap {
+    background: var(--teal);
+    overflow: hidden;
+    padding: 14px 0;
+    margin-top: 3px;
+  }
+  .ticker {
+    display: flex;
+    animation: ticker 22s linear infinite;
+    white-space: nowrap;
+  }
+  .ticker-item {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 15px; letter-spacing: 3px;
+    color: var(--bg);
+    padding: 0 40px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .ticker-dot {
+    color: rgba(8,8,8,0.4);
+    padding: 0 8px;
+  }
+  @keyframes ticker {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* ═══════════════════════════════
+     CONTACT
+  ═══════════════════════════════ */
+  #contact {
+    background: var(--bg2);
+    text-align: center;
+    padding: 120px 48px 80px;
+  }
+
+  .contact-pre {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px; letter-spacing: 4px;
+    color: var(--teal); text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  #contact h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(56px, 9vw, 112px);
+    line-height: 0.9;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  #contact h2 em {
+    font-style: normal;
+    -webkit-text-stroke: 1.5px var(--teal);
+    color: transparent;
+  }
+
+  .contact-sub {
+    font-size: 15px; color: var(--muted);
+    max-width: 420px; margin: 0 auto 56px;
+    line-height: 1.7;
+  }
+
+  .contact-row {
+    display: flex; justify-content: center; align-items: center;
+    gap: 32px; flex-wrap: wrap;
+    margin-bottom: 64px;
+  }
+
+  .contact-link {
+    display: flex; align-items: center; gap: 12px;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--white);
+    text-decoration: none;
+    padding: 16px 28px;
+    border: 1px solid var(--border);
+    transition: border-color 0.2s, background 0.2s, color 0.2s;
+  }
+  .contact-link:hover {
+    border-color: var(--teal);
+    background: var(--teal-dim);
+    color: var(--teal);
+  }
+
+  .contact-link-primary {
+    background: var(--teal);
+    color: var(--bg);
+    border-color: var(--teal);
+    font-weight: 700;
+  }
+  .contact-link-primary:hover {
+    background: var(--teal2);
+    color: var(--bg);
+    border-color: var(--teal2);
+  }
+
+  /* Footer */
+  footer {
+    background: var(--bg);
+    padding: 28px 48px;
+    display: flex; justify-content: space-between; align-items: center;
+    border-top: 1px solid var(--border);
+  }
+  .footer-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px; letter-spacing: 3px; color: var(--teal);
+  }
+  .footer-copy {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px; letter-spacing: 1px;
+    color: var(--muted);
+  }
+
+  /* ═══════════════════════════════
+     REVEAL ANIMATIONS
+  ═══════════════════════════════ */
+  .reveal {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Stagger children */
+  .stagger > * {
+    opacity: 0; transform: translateY(24px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .stagger.visible > *:nth-child(1) { opacity:1; transform:none; transition-delay:0s; }
+  .stagger.visible > *:nth-child(2) { opacity:1; transform:none; transition-delay:0.1s; }
+  .stagger.visible > *:nth-child(3) { opacity:1; transform:none; transition-delay:0.2s; }
+  .stagger.visible > *:nth-child(4) { opacity:1; transform:none; transition-delay:0.3s; }
+  .stagger.visible > *:nth-child(5) { opacity:1; transform:none; transition-delay:0.4s; }
+  .stagger.visible > *:nth-child(6) { opacity:1; transform:none; transition-delay:0.5s; }
+
+  /* mobile */
+  @media (max-width: 900px) {
+    nav { padding: 20px 24px; }
+    .nav-links { display: none; }
+    section { padding: 80px 24px; }
+    #about { grid-template-columns: 1fr; gap: 48px; }
+    .about-right { display: none; }
+    .services-grid { grid-template-columns: 1fr; }
+    .video-showcase { flex-direction: column; padding: 0 0; }
+    .video-side { flex-direction: row; }
+    .hero-content { padding: 0 24px 56px; }
+    .hero-stats { gap: 24px; }
+    .portfolio-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Custom Cursor -->
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">KA</div>
+  <ul class="nav-links">
+    <li><a href="#about">About</a></li>
+    <li><a href="#services">Services</a></li>
+    <li><a href="#portfolio">Work</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<!-- ═══════════════ HERO ═══════════════ -->
+<section id="hero">
+  <div class="hero-video-wrap">
+    <video autoplay loop muted playsinline>
+      <source src="https://res.cloudinary.com/dxzw7m8jm/video/upload/v1775034695/100K_VID_ibjwul.mp4" type="video/mp4">
+    </video>
+  </div>
+  <div class="hero-overlay"></div>
+  <div class="hero-corner"></div>
+
+  <div class="hero-content">
+    <div class="hero-tag">Video Editor & Cinematographer</div>
+    <h1 class="hero-name">
+      Kiran<span>Avusula</span>
+    </h1>
+    <div class="hero-bottom">
+      <p class="hero-desc">Crafting visual stories that move people — cinematic edits, short films, and content built to stop the scroll.</p>
+      <div class="hero-stats">
+        <div class="stat">
+          <div class="stat-num">2+</div>
+          <div class="stat-label">Years</div>
+        </div>
+        <div class="stat">
+          <div class="stat-num">∞</div>
+          <div class="stat-label">Stories Told</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scroll-hint">
+    <span>Scroll</span>
+    <div class="scroll-line"></div>
+  </div>
+</section>
+
+<!-- ═══════════════ ABOUT ═══════════════ -->
+<section id="about">
+  <div class="about-left reveal">
+    <div class="section-label">001 — About</div>
+    <h2 class="section-title">I Edit<br>With <em>Purpose</em></h2>
+    <p class="about-body">
+      With 2 years of hands-on experience working with agencies, content creators, and client-based projects — I bring a cinematic eye and a storyteller's instinct to every frame. From short films to cover song visuals, I don't just cut clips — I build emotion.
+    </p>
+    <div class="about-tags stagger">
+      <span class="tag">Agencies</span>
+      <span class="tag">Individual Creators</span>
+      <span class="tag">Client Projects</span>
+      <span class="tag">Delivery Ready</span>
+      <span class="tag">Short Films</span>
+      <span class="tag">Cover Songs</span>
+    </div>
+  </div>
+
+  <div class="about-right reveal">
+    <div class="about-video-frame">
+      <video autoplay loop muted playsinline>
+        <source src="https://res.cloudinary.com/dxzw7m8jm/video/upload/v1775034695/100K_VID_ibjwul.mp4" type="video/mp4">
+      </video>
+      <div class="frame-corner tl"></div>
+      <div class="frame-corner tr"></div>
+      <div class="frame-corner bl"></div>
+      <div class="frame-corner br"></div>
+      <div class="about-video-label">— Showreel 2024</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ SERVICES ═══════════════ -->
+<section id="services">
+  <div class="services-header reveal">
+    <div class="section-label">002 — Services</div>
+    <h2 class="section-title">What I<br>Bring</h2>
+  </div>
+  <div class="services-grid stagger">
+
+    <div class="service-card">
+      <span class="service-num">01</span>
+      <span class="service-icon">🎬</span>
+      <div class="service-name">Cinematic Editing</div>
+      <p class="service-desc">Frame-perfect cuts, colour grades, and pacing that make every video feel like a film. Built for emotional impact.</p>
+      <div class="service-line"></div>
+    </div>
+
+    <div class="service-card">
+      <span class="service-num">02</span>
+      <span class="service-icon">🎞</span>
+      <div class="service-name">Short Film Direction</div>
+      <p class="service-desc">End-to-end storytelling — from script breakdown to final edit. I've directed and edited short films that connect.</p>
+      <div class="service-line"></div>
+    </div>
+
+    <div class="service-card">
+      <span class="service-num">03</span>
+      <span class="service-icon">🎵</span>
+      <div class="service-name">Cover Song Visuals</div>
+      <p class="service-desc">Music-synced edits that breathe life into cover songs — tight rhythm cuts, mood-matched colour, and motion.</p>
+      <div class="service-line"></div>
+    </div>
+
+    <div class="service-card">
+      <span class="service-num">04</span>
+      <span class="service-icon">📱</span>
+      <div class="service-name">Reels & Shorts</div>
+      <p class="service-desc">Scroll-stopping short-form content for Instagram and YouTube. Hooks in the first 3 seconds, always.</p>
+      <div class="service-line"></div>
+    </div>
+
+    <div class="service-card">
+      <span class="service-num">05</span>
+      <span class="service-icon">✨</span>
+      <div class="service-name">Motion Graphics</div>
+      <p class="service-desc">Titles, lower thirds, and animated elements that elevate production value and keep viewers engaged.</p>
+      <div class="service-line"></div>
+    </div>
+
+    <div class="service-card">
+      <span class="service-num">06</span>
+      <span class="service-icon">🎥</span>
+      <div class="service-name">Cinematography</div>
+      <p class="service-desc">On-set camera work with a trained eye — compositions, movement, and lighting that tell a story before the edit.</p>
+      <div class="service-line"></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════ PORTFOLIO ═══════════════ -->
+<section id="portfolio">
+  <div class="portfolio-header reveal">
+    <div>
+      <div class="section-label">003 — Work</div>
+      <h2 class="section-title">Selected<br>Works</h2>
+    </div>
+    <a href="https://www.instagram.com/juskirann/" target="_blank" style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:2px;color:var(--teal);text-decoration:none;border-bottom:1px solid var(--border);padding-bottom:4px;transition:border-color 0.2s;" onmouseover="this.style.borderColor='var(--teal)'" onmouseout="this.style.borderColor='var(--border)'">View all on Instagram ↗</a>
+  </div>
+
+  <!-- Film holes top -->
+  <div class="film-holes">
+    <div class="film-hole-row" id="holes1"></div>
+    <div class="film-hole-row" id="holes2"></div>
+  </div>
+
+  <!-- Main showcase -->
+  <div class="video-showcase">
+    <!-- Featured large video -->
+    <div class="video-featured">
+      <video autoplay loop muted playsinline>
+        <source src="https://res.cloudinary.com/dxzw7m8jm/video/upload/v1775034695/100K_VID_ibjwul.mp4" type="video/mp4">
+      </video>
+      <div class="video-featured-overlay"></div>
+      <div class="play-btn">
+        <svg width="14" height="16" viewBox="0 0 14 16" fill="none">
+          <path d="M1 1L13 8L1 15V1Z" fill="#00E5B4"/>
+        </svg>
+      </div>
+      <div class="video-featured-info">
+        <div class="vf-category">Showreel · 2024</div>
+        <div class="vf-title">The Full Reel</div>
+      </div>
+    </div>
+
+    <!-- Side stack — same video, different moments via poster offset trick -->
+    <div class="video-side">
+      <div class="video-side-item">
+        <video autoplay loop muted playsinline style="object-position: center 30%;">
+          <source src="https://res.cloudinary.com/dxzw7m8jm/video/upload/v1775034695/100K_VID_ibjwul.mp4" type="video/mp4">
+        </video>
+        <div class="video-side-item-overlay"></div>
+        <div class="video-side-cat">Short Film</div>
+        <div class="video-side-label">Cinematic</div>
+      </div>
+      <div class="video-side-item">
+        <video autoplay loop muted playsinline style="object-position: center 70%;">
+          <source src="https://res.cloudinary.com/dxzw7m8jm/video/upload/v1775034695/100K_VID_ibjwul.mp4" type="video/mp4">
+        </video>
+        <div class="video-side-item-overlay"></div>
+        <div class="video-side-cat">Cover Song</div>
+        <div class="video-side-label">Visual</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Film holes bottom -->
+  <div class="film-holes">
+    <div class="film-hole-row" id="holes3"></div>
+    <div class="film-hole-row" id="holes4"></div>
+  </div>
+
+  <!-- Ticker -->
+  <div class="ticker-wrap">
+    <div class="ticker" id="ticker"></div>
+  </div>
+</section>
+
+<!-- ═══════════════ CONTACT ═══════════════ -->
+<section id="contact">
+  <div class="contact-pre reveal">Available for projects</div>
+  <h2 class="section-title reveal">Let's Make<br><em>Something</em></h2>
+  <p class="contact-sub reveal">Whether it's a short film, a cover song visual, or content that needs to hit — let's talk.</p>
+  <div class="contact-row reveal">
+    <a href="/cdn-cgi/l/email-protection#88e3e1fae9e6e9fefdfbfde4e9bfc8efe5e9e1e4a6ebe7e5" class="contact-link contact-link-primary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      <span class="__cf_email__" data-cfemail="98f3f1eaf9f6f9eeedebedf4f9afd8fff5f9f1f4b6fbf7f5">[email&#160;protected]</span>
+    </a>
+    <a href="https://www.instagram.com/juskirann/" target="_blank" class="contact-link">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+      @juskirann
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">Kiran Avusula</div>
+  <div class="footer-copy">© 2024 — Video Editor & Cinematographer — Hyderabad</div>
+</footer>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  // Cursor
+  const cursor = document.getElementById('cursor');
+  const ring = document.getElementById('cursorRing');
+  let mx = 0, my = 0, rx = 0, ry = 0;
+  document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; cursor.style.left = mx + 'px'; cursor.style.top = my + 'px'; });
+  function animRing() { rx += (mx - rx) * 0.12; ry += (my - ry) * 0.12; ring.style.left = rx + 'px'; ring.style.top = ry + 'px'; requestAnimationFrame(animRing); }
+  animRing();
+  document.querySelectorAll('a, button, .service-card, .video-featured, .video-side-item').forEach(el => {
+    el.addEventListener('mouseenter', () => { cursor.style.width = '20px'; cursor.style.height = '20px'; ring.style.width = '56px'; ring.style.height = '56px'; ring.style.opacity = '0.8'; });
+    el.addEventListener('mouseleave', () => { cursor.style.width = '12px'; cursor.style.height = '12px'; ring.style.width = '36px'; ring.style.height = '36px'; ring.style.opacity = '0.5'; });
+  });
+
+  // Film holes
+  ['holes1','holes2','holes3','holes4'].forEach(id => {
+    const el = document.getElementById(id);
+    let html = '';
+    for(let i = 0; i < 60; i++) html += '<div class="film-hole"></div>';
+    el.innerHTML = html + html; // doubled for seamless loop
+  });
+
+  // Ticker
+  const tickerEl = document.getElementById('ticker');
+  const words = ['Cinematic Editing','Short Films','Cover Song Visuals','Motion Graphics','Reels & Shorts','Storytelling','Cinematography','Direction'];
+  let t = '';
+  for(let i = 0; i < 3; i++) words.forEach(w => t += `<span class="ticker-item">${w}<span class="ticker-dot">◆</span></span>`);
+  tickerEl.innerHTML = t + t;
+
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.reveal, .stagger');
+  const ob
